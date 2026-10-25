@@ -1,0 +1,22 @@
+# Local credentials and environment configuration
+.env
+.env.*
+!.env.example
+atlas-credentials.env
+
+# Local Python environments and generated files
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# Candidate data and local interview transcripts
+resumes/
+data/transcripts/

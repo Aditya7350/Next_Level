@@ -1,0 +1,8 @@
+# Add these to your interview backend. Use Python 3.11 or 3.12: torch and mediapipe wheels for the newest Python
+# versions often lag behind. If you hit "module 'mediapipe' has no attribute 'solutions'", pin an older
+# mediapipe (for example 0.10.14), which still ships the face-mesh API this code uses.
+numpy<2.5
+opencv-python-headless
+ultralytics
+mediapipe
+python-multipart

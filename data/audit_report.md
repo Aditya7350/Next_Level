@@ -1,0 +1,253 @@
+# Audit report
+
+Rejected: 12   Rewritten: 55   Total approved now: 81
+
+## Rejected (skim: restore any you disagree with)
+
+- **chunking / basic** `q_9fdc1d50db`: How can selecting an inappropriate chunking method result in poor retrieval performance? Provide a specific example.
+  - why: The question is a duplicate of existing approved questions.
+- **embeddings / basic** `q_7d048d8d84`: In which scenarios would you prefer using embeddings with lower dimensions, and when might that choice lead to problems?
+  - why: duplicates an existing question about embedding dimensionality and storage cost
+- **embeddings / basic** `q_36e4e359fa`: If you decided not to re-index after upgrading your embedding model, what could be a concrete symptom of that choice when retrieving documents?
+  - why: duplicates an existing question about failure modes without re-indexing
+- **vector search / advanced** `q_2deb167436`: You need to optimize a vector search system using HNSW to improve recall without significantly increasing latency. Describe the specific parameters you would adjust and how they influence the performance of the search. What would be your method for evaluating the impact of these changes?
+  - why: duplicates an existing question on optimizing HNSW parameters for recall and latency.
+- **reranking / advanced** `q_4d2ca1773b`: In your reranking system, you suspect a failure mode where the reranker may not improve results for certain queries. How would you detect this issue, and what metrics would you use?
+  - why: duplicates an existing question about rerankers not fixing low recall
+- **reranking / advanced** `q_345d6c1edc`: Given a constraint of processing time, you need to choose between an off-the-shelf reranker and a fine-tuned model. What factors would influence your decision-making process?
+  - why: duplicates an existing question on trade-offs between off-the-shelf and fine-tuned rerankers
+- **hallucination / intermediate** `q_7ca371b286`: What metrics would you track to evaluate the occurrence of hallucination in a RAG system, and how would you interpret the results to inform further development?
+  - why: The question is a generic template about metrics without specific topic content.
+- **hallucination / advanced** `q_e5af6ef7ec`: If a RAG system frequently produces hallucinated content due to conflicting or outdated sources, what systematic approach would you take to detect this failure mode, and what tools or techniques would assist in this process?
+  - why: duplicates an existing question about detecting and addressing outdated sources to prevent hallucination
+- **hallucination / advanced** `q_d2573bd9a6`: When evaluating a RAG system, how would you compare approaches that utilize different temperature settings for decoding in terms of their propensity for hallucination, and what metrics would you include in your offline test plan?
+  - why: duplicates an existing question about temperature setting and hallucination.
+- **retrieval evaluation / intermediate** `q_c205bc5656`: You need to evaluate a retrieval system's performance over time; which metrics would you track, particularly focusing on recall@k and precision@k, and how would you interpret fluctuations in these metrics?
+  - why: generic template question about metrics interpretation
+- **retrieval evaluation / advanced** `q_d1b72cc750`: If your retrieval system is consistently returning low scores on nDCG for certain query types, what specific symptoms would indicate this issue, and which aspects would you inspect first to diagnose the problem?
+  - why: duplicates an existing question on causes of low nDCG scores
+- **retrieval evaluation / advanced** `q_acf9b8921d`: During a production rollout, you notice that the evaluation metrics for your retrieval system are drifting unexpectedly. How would you determine if this is due to evaluation set drift, and what steps would you take to investigate and address the issue?
+  - why: duplicates an existing question on evaluation set drift
+
+## Rewritten (check the new wording)
+
+- **chunking / basic** `q_947c2edab7`
+  - was: Define fixed-size chunking and provide an example of its application.
+  - now: What is fixed-size chunking, and how is it applied in processing legal documents for retrieval-augmented generation?
+  - why: The question is vague and lacks specificity in its application example.
+- **chunking / basic** `q_c16a8e88ea`
+  - was: In what scenarios would you choose semantic chunking over fixed-size chunking, and why?
+  - now: When processing legal documents for RAG, why might semantic chunking be preferred over fixed-size chunking?
+  - why: The question is compound and lacks specificity.
+- **chunking / intermediate** `q_b4ac82da0f`
+  - was: Compare chunk overlap and non-overlap in chunking. What are the pros and cons of each?
+  - now: What are the trade-offs of using chunk overlap in retrieval-augmented generation systems?
+  - why: The question is compound and needs to be split into specific scenarios.
+- **chunking / intermediate** `q_d631e9fc9e`
+  - was: In a scenario where you need to optimize retrieval speed, how would you decide between fixed-size chunking and recursive splitting for a large document corpus?
+  - now: How would you evaluate the trade-offs between fixed-size chunking and recursive splitting when optimizing retrieval speed for a large document corpus?
+  - why: The question is compound and needs to be more specific.
+- **chunking / intermediate** `q_6e901bd864`
+  - was: Given a requirement to improve context preservation in your chunking strategy, how would you select and justify the overlap percentage for chunking?
+  - now: How would you determine the optimal overlap percentage for chunking to improve context preservation in a document with complex interrelated sections?
+  - why: The question is compound and lacks specificity.
+- **chunking / intermediate** `q_c5d8d9954b`
+  - was: Explain how the choice of chunk size can impact the token limit of your embedding model in a retrieval pipeline. What considerations should be made?
+  - now: How does chunk size selection impact the token limit constraints of an embedding model in a retrieval pipeline?
+  - why: The question is compound and needs to be split into two separate questions.
+- **chunking / advanced** `q_bb1f5f64e2`
+  - was: In a production system using recursive splitting for chunking, retrieval results have significantly degraded, returning overly vague answers. What would you check first to diagnose the issue?
+  - now: In a production system using recursive splitting for chunking, retrieval results have significantly degraded, returning overly vague answers. How would you verify if the chunking logic is causing the issue?
+  - why: The question is compound and the key points are incomplete.
+- **chunking / advanced** `q_d6f3e6bbbf`
+  - was: Given a requirement to maintain high contextual integrity in retrieval results, how would you design a chunking strategy using structure-aware chunking for a set of documents with complex formatting?
+  - now: How would you implement structure-aware chunking to maintain contextual integrity in documents with complex formatting, such as those containing tables and code blocks?
+  - why: The question is compound and could be more specific.
+- **embeddings / basic** `q_e691868ee3`
+  - was: How would you define an embedding model in the context of information retrieval, and can you provide a concrete example of when to use one?
+  - now: What is an embedding model in the context of information retrieval, and when would you choose a retrieval-tuned embedding model over a generic one?
+  - why: The question is compound and includes outdated examples.
+- **embeddings / intermediate** `q_232b0b98c7`
+  - was: What is the difference between asymmetric query embeddings and document embeddings, and when would you use one over the other?
+  - now: When would you choose asymmetric query embeddings over symmetric embeddings in a retrieval system?
+  - why: The question is compound and the key points are outdated.
+- **embeddings / intermediate** `q_cbba89bf0c`
+  - was: Given a requirement for high accuracy in a document retrieval system, how would you choose between a general-purpose embedding model and a domain-specific fine-tuned model?
+  - now: How would you evaluate the trade-offs between using a general-purpose embedding model and a domain-specific fine-tuned model for high accuracy in document retrieval?
+  - why: The question is compound and could be more specific.
+- **embeddings / intermediate** `q_c5fef1435c`
+  - was: In designing a RAG system with a requirement for low storage costs, how would you choose the embedding dimensions while ensuring retrieval accuracy?
+  - now: How would you determine the optimal embedding dimensions to balance storage costs and retrieval accuracy in a RAG system?
+  - why: The question is compound and the key points are not fully aligned with current practices.
+- **embeddings / intermediate** `q_4f8fc9950c`
+  - was: Imagine your retrieval system starts returning highly similar documents for distinct queries; how would you investigate the potential issues with vector normalization?
+  - now: Your retrieval system returns highly similar documents for distinct queries; how would you investigate if vector normalization is causing this issue?
+  - why: The question is compound and slightly vague regarding vector normalization issues.
+- **embeddings / advanced** `q_a5590b6015`
+  - was: When evaluating the effectiveness of your current embedding strategy, how would you set up an offline test plan to compare domain-specific fine-tuning of embeddings against a general-purpose model?
+  - now: How would you design an offline test to compare the retrieval performance of domain-specific fine-tuned embeddings against a general-purpose model in a specific use case?
+  - why: The question is compound and the key points are not specific enough.
+- **embeddings / intermediate** `q_2c98df72dd`
+  - was: Faced with a decision to keep either asymmetric query or document embeddings under tight memory constraints, how would you assess which approach to prioritize for your RAG system?
+  - now: How would you decide between using asymmetric query embeddings or document embeddings when memory constraints are tight in a RAG system?
+  - why: The question is compound and needs a clearer focus.
+- **vector search / basic** `q_668b86dfcf`
+  - was: When would you choose HNSW for vector search, and when would you avoid it?
+  - now: What are the advantages of using HNSW for vector search in large, high-dimensional datasets?
+  - why: The question is compound and needs to be split into two separate questions.
+- **vector search / intermediate** `q_5694be7c61`
+  - was: How might a wrong choice of distance metric show up in the results of a vector search? Provide a specific symptom.
+  - now: What specific issues might arise in vector search results when using Euclidean distance in a high-dimensional space?
+  - why: The question is vague and lacks specificity in the scenario.
+- **vector search / intermediate** `q_6221210f96`
+  - was: In a hybrid search system that uses both BM25 and dense vectors, how would you balance the contribution of each method to ensure optimal search results?
+  - now: How would you determine the optimal weighting strategy for combining BM25 and dense vector scores in a hybrid search system?
+  - why: The question is compound and needs to focus on a specific aspect of balancing BM25 and dense vectors.
+- **vector search / intermediate** `q_0e283d5f71`
+  - was: In a production vector search system using approximate nearest neighbor search, you notice a significant deterioration in search quality. What specific metrics would you first check to diagnose the issue, and what would those metrics indicate about the potential causes?
+  - now: In a production vector search system using approximate nearest neighbor search, you notice a significant drop in recall@k. What could be the causes and how would you address them?
+  - why: The question is compound and the key points are incomplete.
+- **vector search / advanced** `q_f26af43385`
+  - was: Imagine your vector search system is using IVF with product quantization, and you observe a noticeable increase in retrieval time. What steps would you take to identify the root cause of the issue, and what metrics would help you in this diagnostic process?
+  - now: Your vector search system using IVF with product quantization has increased retrieval time. How would you diagnose if the issue is due to suboptimal quantization settings?
+  - why: The question is compound and could be more specific.
+- **vector search / intermediate** `q_594bb50c5d`
+  - was: You are tasked with comparing the performance of two distance metrics in your vector search system under a specified workload. Describe your offline test plan and how you would determine which metric provides better results based on your findings.
+  - now: How would you design an offline test to compare Euclidean distance and cosine similarity in a vector search system for a specific dataset and query type?
+  - why: The question is compound and the key points are too generic.
+- **vector search / advanced** `q_2acb4db1cb`
+  - was: Your vector search system employs metadata filtering, and you've noticed that performance has degraded. Explain how you would troubleshoot the filtering mechanism. What aspects of pre-filtering and post-filtering would you focus on, and why?
+  - now: How would you diagnose and address performance degradation in a vector search system using metadata filtering, focusing on pre-filtering efficiency?
+  - why: The question is compound and needs to be more specific.
+- **reranking / intermediate** `q_b0615e1ddf`
+  - was: Define reranking in the context of information retrieval and provide a concrete example of how it is used.
+  - now: What is reranking in information retrieval, and how does a cross-encoder improve the relevance of top-k results?
+  - why: The question is compound and the key points are slightly off-topic.
+- **reranking / basic** `q_833b7ee784`
+  - was: Describe a symptom that indicates a reranker is not performing well, and how it might manifest in the results.
+  - now: What does a low nDCG@k score indicate about a reranker's performance, and how can this affect the relevance of search results?
+  - why: The question is vague and lacks a specific scenario.
+- **reranking / intermediate** `q_dbc507f014`
+  - was: What impact does the latency budget have on the choice of reranking strategies in a live system?
+  - now: How does a strict latency budget influence the choice between heuristic-based and exhaustive reranking methods in a live system?
+  - why: The question is compound and needs to focus on a specific aspect of reranking strategies.
+- **reranking / intermediate** `q_00b4a19ab8`
+  - was: When comparing off-the-shelf rerankers vs fine-tuned models, what factors would you consider in choosing one for a specific task?
+  - now: What are the trade-offs between using an off-the-shelf reranker and a fine-tuned reranker for a domain-specific search task?
+  - why: The question is compound and needs to be more specific.
+- **reranking / intermediate** `q_23e508a1da`
+  - was: How would you determine the optimal candidate pool size for reranking from an initial retrieval stage that returns 100 results?
+  - now: What factors should you consider when selecting the candidate pool size for reranking from an initial retrieval stage that returns 100 results?
+  - why: The question is vague about how to determine the optimal size.
+- **reranking / intermediate** `q_e04c2139c3`
+  - was: If your reranker shows consistently low nDCG@k scores, what steps would you take to diagnose and improve the reranking performance?
+  - now: How would you evaluate and improve the quality of the candidate set fed into a reranker when nDCG@k scores are low?
+  - why: The question is compound and needs to focus on a specific aspect of reranking performance.
+- **reranking / intermediate** `q_65134b431c`
+  - was: In a scenario where the reranker cannot fix low first-stage recall, what underlying issues would you investigate and potential solutions might you propose?
+  - now: What strategies can improve the initial retrieval stage when a reranker cannot address low recall issues?
+  - why: The question is compound and needs to be more specific.
+- **reranking / intermediate** `q_a8184d1f71`
+  - was: How does the choice of truncation method for long passages impact the reranking process, and what trade-offs might arise?
+  - now: How does the choice between head truncation and sliding window methods affect the preservation of context in long passages during reranking?
+  - why: The question is compound and needs to focus on a specific aspect of truncation methods.
+- **reranking / intermediate** `q_257fcca785`
+  - was: What is the typical cost associated with using LLM-based reranking, and how would that influence your decision to implement it in a resource-constrained environment?
+  - now: How does the cost of API usage for LLM-based reranking impact its feasibility in a resource-constrained environment?
+  - why: The question is compound and needs to focus on a specific aspect of cost.
+- **reranking / advanced** `q_6297c76358`
+  - was: You need to design a reranking strategy for a real-time search application with a strict latency budget. What considerations would you take into account when tuning the reranking process?
+  - now: What trade-offs would you consider when choosing between a lightweight model and a more complex model for reranking in a real-time search application with a strict latency budget?
+  - why: The question is compound and the key points are somewhat generic.
+- **reranking / intermediate** `q_b7f5bf6831`
+  - was: You are evaluating two different reranking approaches for your search engine, and you need to create an offline test plan. What criteria would you use to compare these approaches?
+  - now: What metrics would you prioritize when evaluating the effectiveness of different reranking approaches in a search engine, and why?
+  - why: The question is compound and needs to focus on a specific aspect of reranking evaluation.
+- **reranking / intermediate** `q_8e4fd7f3f8`
+  - was: If you notice that long passages are consistently causing issues in reranking, how would you approach the problem of passage truncation, and what trade-offs would you consider?
+  - now: How does the choice between head truncation and sliding window methods affect the preservation of context in long passages during reranking?
+  - why: The question is compound and needs to be more specific.
+- **hallucination / intermediate** `q_18335a8578`
+  - was: When would you choose to use a RAG system over a traditional retrieval model, and what risks of hallucination should you be aware of?
+  - now: What are the risks of hallucination in RAG systems, and how can they be mitigated?
+  - why: The question is compound and mixes two distinct topics.
+- **hallucination / intermediate** `q_441b9597ab`
+  - was: Compare the chances of hallucination between a RAG system and a purely generative model. What are the implications of this comparison?
+  - now: How does the risk of hallucination in a RAG system compare to a purely generative model, and what factors contribute to these differences?
+  - why: The question is compound and the key points need refinement.
+- **hallucination / intermediate** `q_ee3a20f7a0`
+  - was: Identify a common beginner mistake in setting up a RAG system that leads to hallucination, and suggest how to avoid it.
+  - now: What is a common mistake in selecting retrieval documents for a RAG system that can lead to hallucination, and how can it be avoided?
+  - why: The question is vague and lacks specificity in the context of RAG systems.
+- **hallucination / intermediate** `q_2337a64e65`
+  - was: What role does temperature setting play in the hallucination of outputs from a RAG system, and how can it affect the results?
+  - now: How does the temperature setting in a RAG system influence the likelihood of hallucinations in its outputs?
+  - why: The question is compound, asking about both the role and effects of temperature.
+- **hallucination / intermediate** `q_f1a6f76b8d`
+  - was: How do you balance grounded prompting with citations and the need for concise responses in a RAG system to minimize hallucination?
+  - now: In a RAG system, how can you ensure that responses remain concise while still providing necessary citations to minimize hallucination?
+  - why: The question is compound and lacks specificity in the scenario.
+- **hallucination / intermediate** `q_ea5adadf6d`
+  - was: When configuring a RAG system, how would you choose parameters for the threshold of refusing to answer when retrieval results are weak to prevent hallucination?
+  - now: How would you determine the confidence threshold for refusing to answer in a RAG system to minimize hallucination?
+  - why: The question is compound and needs to be more specific.
+- **hallucination / intermediate** `q_3e460182e4`
+  - was: In a scenario where a RAG system outputs a hallucinated response, how would you distinguish whether the issue arose from retrieval failure or generation failure, and what steps would you recommend to fix it?
+  - now: How can you determine if a hallucination in a RAG system is due to retrieval failure?
+  - why: The question is compound and needs to be split for clarity.
+- **hallucination / intermediate** `q_81a3f73326`
+  - was: How can context stuffing lead to hallucination in a RAG system, and what strategies would you implement to mitigate this issue?
+  - now: How does context stuffing contribute to hallucination in a RAG system, and what is one effective strategy to manage prompt length?
+  - why: The question is compound and should focus on one specific aspect of context stuffing.
+- **hallucination / intermediate** `q_14269138d0`
+  - was: When using conflicting or outdated sources in a RAG system, how would you identify this issue and what measures can you take to avoid hallucination?
+  - now: How can you detect and address the use of outdated sources in a RAG system to prevent hallucination?
+  - why: The question is compound and vague about identifying issues.
+- **hallucination / advanced** `q_d2f1c48bb6`
+  - was: In a production RAG system, you observe that the responses often contain fabricated details that were not present in the retrieval documents. What specific steps would you take to debug this hallucination issue, and what would you check first?
+  - now: What steps would you take to verify if the retrieval mechanism is contributing to hallucinations in a RAG system?
+  - why: The question is compound and needs to focus on a specific aspect of debugging hallucinations.
+- **hallucination / advanced** `q_9d71416e82`
+  - was: Given a requirement for high accuracy in a RAG system, how would you design the system to refuse to answer when retrieval results are weak, and what specific metrics would guide your decision-making process?
+  - now: How would you implement a confidence threshold in a RAG system to refuse answering when retrieval confidence is low?
+  - why: The question is compound and overlaps with an existing approved question.
+- **hallucination / advanced** `q_673368aeb3`
+  - was: You are tasked with refining a RAG system that is losing context mid-response, leading to hallucinated statements. What design changes would you implement to address context stuffing, and how would you measure the effectiveness of these changes?
+  - now: What design changes can be implemented to address context stuffing in a RAG system, and how would you measure their effectiveness?
+  - why: The question is compound and includes multiple aspects.
+- **hallucination / advanced** `q_5c6d9b96ec`
+  - was: In a scenario where a RAG system outputs hallucinated information due to insufficient post-hoc verification, what measures would you implement as guardrails to enhance the reliability of the outputs, and what specific evaluation methods would you use to assess their impact?
+  - now: What specific guardrails can be implemented to reduce hallucinations in a RAG system, and how would you evaluate their effectiveness?
+  - why: The question is compound and includes vague elements.
+- **retrieval evaluation / basic** `q_d8cc2b35d4`
+  - was: In which scenarios would you prefer using recall@k over precision@k for evaluating retrieval performance?
+  - now: When evaluating a retrieval system for legal document retrieval, why might recall@k be a more suitable metric than precision@k?
+  - why: The question is compound and could be more specific.
+- **retrieval evaluation / intermediate** `q_b69285eed0`
+  - was: What is the difference between human relevance labeling and using LLMs for labeling in retrieval evaluation, and what common mistake might occur if LLMs are solely relied upon?
+  - now: What is a common mistake when using LLMs for relevance labeling in retrieval evaluation?
+  - why: The question is compound and the key points are incomplete.
+- **retrieval evaluation / intermediate** `q_f2e4d4b48b`
+  - was: Given a requirement to evaluate a retrieval system's output, how would you construct a golden question set, and what factors would you consider while building it?
+  - now: How would you ensure user diversity and query variability when constructing a golden question set for evaluating a retrieval system?
+  - why: The question is compound and needs to be more specific.
+- **retrieval evaluation / intermediate** `q_01c40ac83d`
+  - was: If you observe low nDCG scores in the output of your retrieval system, what specific symptoms might lead to this, what causes could you investigate, and what fixes would you suggest?
+  - now: What are the potential causes of low nDCG scores in a retrieval system, and how can you address them?
+  - why: The question is compound and needs to be more focused.
+- **retrieval evaluation / intermediate** `q_fa6b343ed1`
+  - was: When conducting offline evaluation versus online A/B testing for your retrieval system, what key differences in interpretation and outcomes should you be aware of, particularly regarding context precision and context recall?
+  - now: What are the limitations of using offline evaluation metrics like context precision and recall when predicting real-world performance in a retrieval system?
+  - why: The question is compound and needs to focus on a specific aspect of evaluation differences.
+- **retrieval evaluation / advanced** `q_5814b5f3e5`
+  - was: Given a constraint of limited labeled data, how would you evaluate the performance of a retrieval system focusing on the effectiveness of relevance labeling by human versus LLM judges? What metrics would be essential to consider?
+  - now: How would you evaluate the consistency of relevance labeling between human judges and LLM judges in a retrieval system with limited labeled data?
+  - why: The question is compound and needs to focus on a specific aspect of evaluation.
+- **retrieval evaluation / intermediate** `q_d99ce3b73b`
+  - was: If you were tasked with designing an offline test plan to evaluate two different retrieval algorithms under the constraint of processing time, what key factors would you consider, and how would you ensure your evaluation is robust?
+  - now: How would you design an offline test plan to evaluate two retrieval algorithms with a focus on processing time constraints?
+  - why: The question is compound and lacks specificity.
+- **retrieval evaluation / advanced** `q_196c6a0c43`
+  - was: If you need to debug a production failure where the retrieval system is not meeting the required context recall, which aspects would you examine, and what specific metrics would help you identify the root cause of the failure?
+  - now: What specific metrics and logs would you analyze to diagnose a production retrieval system failing to meet context recall requirements?
+  - why: The question is compound and the key points are partially incorrect.

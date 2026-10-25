@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173b32">
+  <title>Interview Lab | Fieldwork</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/demo/styles.css">
+  <script src="/demo/app.js" defer></script>
+</head>
+<body class="auth-mode">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/demo/" aria-label="Fieldwork Interview Lab home">
+        <span class="brand-mark">f.</span>
+        <span class="brand-copy"><strong>fieldwork</strong><small>INTERVIEW LAB</small></span>
+      </a>
+      <div class="rail-label">WORKSPACE</div>
+      <nav class="steps" aria-label="Interview steps">
+        <div class="step active" id="step-setup"><span class="step-index">01</span><span>Session setup</span></div>
+        <div class="step" id="step-interview"><span class="step-index">02</span><span>Interview room</span></div>
+        <div class="step" id="step-report"><span class="step-index">03</span><span>Session report</span></div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="api-state"><span class="status-dot" id="health-dot"></span><span id="health-label">Checking API</span></div>
+        <div class="sidebar-note">LOCAL DEMO <span>·</span> TEXT MODE</div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="crumb"><span>Workspace</span><span class="crumb-slash">/</span><strong>Interview practice</strong></div>
+        <div class="topbar-right">
+          <span class="demo-badge"><span></span> DEMO ENVIRONMENT</span>
+          <button class="account-button" id="account-button" type="button" hidden></button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <section class="page-heading">
+          <div>
+            <p class="eyebrow">CANDIDATE EXPERIENCE <span>—</span> TEXT INTERVIEW</p>
+            <h1>Interview Lab<span class="heading-period">.</span></h1>
+            <p class="heading-subtitle">A quiet place to think out loud.</p>
+          </div>
+          <div class="heading-stamp"><span class="stamp-number">01</span><span>Practice<br>session</span></div>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="auth-landing" id="auth-landing" aria-label="Fieldwork welcome">
+            <div class="auth-landing-top"><span class="auth-signal"></span><span>FIELDWORK <b>/</b> CANDIDATE STUDIO</span></div>
+            <div class="auth-landing-copy">
+              <div class="auth-graphic" aria-hidden="true"><span></span><span></span><i></i></div>
+              <p class="auth-kicker">A LITTLE SPACE TO THINK</p>
+              <h2>Make your<br>experience<br><em>the answer.</em></h2>
+              <p class="auth-description">Practice the stories behind your work, one thoughtful question at a time.</p>
+            </div>
+            <div class="auth-landing-bottom"><span>INTERVIEW LAB <b>·</b> TEXT EDITION</span><span>01 — 03</span></div>
+          </section>
+          <section class="interview-column" aria-label="Interview session">
+            <div class="room-header">
+              <div>
+                <span class="section-kicker" id="room-kicker">LIVE SESSION</span>
+                <h2 id="room-title">Your interview room</h2>
+              </div>
+              <div class="room-progress" id="room-progress">NOT STARTED</div>
+            </div>
+            <div class="room-surface" id="room-surface">
+              <div class="empty-room" id="empty-room">
+                <div class="empty-orbit"><span></span><span></span><span></span></div>
+                <p class="empty-kicker">ROOM 001 <span>·</span> READY WHEN YOU ARE</p>
+                <h3>Make space<br>for a good answer.</h3>
+                <p class="empty-copy">Set up a practice session to get your first question.</p>
+                <div class="empty-rule"><span></span></div>
+              </div>
+              <div class="conversation" id="conversation" hidden>
+                <div class="conversation-meta"><span class="avatar">F</span><div><strong>Fieldwork interviewer</strong><small id="question-meta">Question 01</small></div><span class="live-pill"><i></i> IN SESSION</span></div>
+                <div class="question-block" id="question-block"><span class="question-label" id="question-label">QUESTION 01</span><p id="question-text"></p></div>
+                <div class="answer-area" id="answer-area">
+                  <label for="answer-input">YOUR RESPONSE <span>Keep it conversational. Detail helps.</span></label>
+                  <textarea id="answer-input" maxlength="12000" rows="6" placeholder="Start with the context, then walk through your approach…" required></textarea>
+                  <div class="answer-actions"><span id="char-count">0 / 12,000</span><button class="primary-button submit-answer" id="answer-submit" type="submit" form="answer-form">Send answer <span aria-hidden="true">↗</span></button></div>
+                </div>
+                <form id="answer-form" class="hidden-form"></form>
+                <div class="feedback-panel" id="feedback-panel" hidden></div>
+                <div class="report-panel" id="report-panel" hidden></div>
+              </div>
+            </div>
+            <div class="room-footnote"><span class="footnote-mark">i</span><span>This demo uses keyword-based scoring. Feedback is illustrative, not a hiring decision.</span></div>
+          </section>
+
+          <aside class="control-column" aria-label="Session controls">
+            <section class="control-panel auth-panel" id="auth-panel">
+              <div class="panel-topline"><span class="section-kicker">YOUR ACCOUNT</span><span class="panel-step">01 / 03</span></div>
+              <h2 id="auth-heading">Welcome<br>back.</h2>
+              <p class="auth-subtitle" id="auth-subtitle">Sign in to continue your practice.</p>
+              <div class="auth-tabs" role="tablist" aria-label="Account action">
+                <button class="auth-tab selected" type="button" role="tab" aria-selected="true" data-auth-mode="login">Sign in</button>
+                <button class="auth-tab" type="button" role="tab" aria-selected="false" data-auth-mode="register">Create account</button>
+              </div>
+              <form id="auth-form" class="form-stack">
+                <label class="field" id="name-field" hidden><span>Full name</span><input id="name-input" name="name" autocomplete="name" maxlength="120" placeholder="Your name"></label>
+                <label class="field"><span>Email address</span><input id="email-input" name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+                <label class="field"><span>Password</span><input id="password-input" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="At least 8 characters" required></label>
+                <button class="primary-button full-button" type="submit" id="auth-submit">Sign in <span aria-hidden="true">↗</span></button>
+              </form>
+              <p class="form-message" id="auth-message" role="status"></p>
+              <p class="local-note">Demo accounts are stored in memory and reset when the API restarts.</p>
+            </section>
+
+            <section class="control-panel setup-panel" id="setup-panel" hidden>
+              <div class="panel-topline"><span class="section-kicker">SESSION SETUP</span><span class="panel-step">02 / 03</span></div>
+              <h2>Make it<br>your own.</h2>
+              <form id="setup-form" class="form-stack">
+                <label class="field"><span>Role or focus</span><input id="role-input" maxlength="40" placeholder="e.g. Product Designer"></label>
+                <label class="field"><span>Job description <em>OPTIONAL</em></span><textarea id="jd-input" rows="4" maxlength="30000" placeholder="Paste 30+ characters to tailor the questions."></textarea></label>
+                <label class="field"><span>Resume <em>OPTIONAL</em></span><span class="file-control"><input id="resume-input" type="file" accept=".pdf,.docx,.txt,.md"><span class="file-button">Choose file</span><span class="file-name" id="file-name">PDF, DOCX, TXT or MD · 8 MB max</span></span><small class="resume-hint">Your projects, experience and skills shape the questions.</small></label>
+                <div class="field-row">
+                  <label class="field"><span>Difficulty</span><select id="difficulty-input"><option value="foundational">Foundational</option><option value="intermediate" selected>Intermediate</option><option value="advanced">Advanced</option></select></label>
+                  <label class="field"><span>Questions</span><select id="count-input"><option value="3">3 questions</option><option value="5" selected>5 questions</option><option value="8">8 questions</option></select></label>
+                </div>
+                <button class="primary-button full-button" id="start-button" type="submit">Create interview <span aria-hidden="true">↗</span></button>
+              </form>
+              <p class="form-message" id="setup-message" role="status"></p>
+              <button class="text-button signout-button" id="signout-button" type="button">Sign out</button>
+            </section>
+
+            <section class="control-panel active-panel" id="active-panel" hidden>
+              <div class="panel-topline"><span class="section-kicker">SESSION ACTIVE</span><span class="panel-step">02 / 03</span></div>
+              <h2>You're in<br>the room.</h2>
+              <p class="active-role" id="active-role">Practice interview</p>
+              <div class="session-meter">
+                <div class="session-meter-label"><span>QUESTION PROGRESS</span><strong id="active-count">QUESTION 01 OF 05</strong></div>
+                <div class="meter-track"><span id="active-progress"></span></div>
+              </div>
+              <button class="text-button signout-button" id="signout-button-active" type="button">Sign out</button>
+            </section>
+
+            <section class="control-panel report-summary" id="report-summary" hidden>
+              <div class="panel-topline"><span class="section-kicker">SESSION REPORT</span><span class="panel-step">03 / 03</span></div>
+              <h2>Session<br>complete.</h2>
+              <p class="summary-copy">Your report is ready in the interview room.</p>
+              <button class="secondary-button full-button" id="new-session-button" type="button">Start another session <span aria-hidden="true">↗</span></button>
+              <button class="text-button signout-button" id="signout-button-report" type="button">Sign out</button>
+            </section>
+
+            <div class="control-footer"><span class="footer-spark">✳</span><span>FIELDWORK <b>·</b> INTERVIEW LAB <small>BUILD 0.1 / LOCAL</small></span></div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="alert" aria-live="assertive" hidden></div>
+</body>
+</html>
