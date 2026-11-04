@@ -94,7 +94,11 @@ export default function Room({ interview, user, onFinish, onExit }) {
 
   // Camera checks start once the first question has arrived (the interview must be "in progress" on the server).
   const cameraRef = useRef(null);
-  const proctor = useProctoring({ interviewId: interview.id, videoRef: cameraRef, active: phase !== "loading" });
+  const proctor = useProctoring({
+    interviewId: interview.id,
+    videoRef: cameraRef,
+    active: phase !== "loading" && phase !== "ended",
+  });
 
   const listener = useListener({
     onFinal: (text) => {
@@ -103,6 +107,14 @@ export default function Room({ interview, user, onFinish, onExit }) {
     },
   });
   const { start: startListening, stop: stopListening } = listener;
+
+  useEffect(() => {
+    if (!proctor.status.terminated) return;
+    stopListening();
+    cancelSpeech.current();
+    exitFullscreen();
+    setPhase("ended");
+  }, [proctor.status.terminated, stopListening]);
 
   const beginAnswer = useCallback(() => {
     setPhase("ready");
@@ -256,6 +268,22 @@ export default function Room({ interview, user, onFinish, onExit }) {
           ? "Aria is thinking about your answer…"
           : "Your turn. Answer out loud, or type below.";
 
+  if (phase === "ended") {
+    return (
+      <div className="room">
+        <main className="room-main">
+          <section className="card">
+            <h1>Interview ended</h1>
+            <p>
+              The interview was stopped after reaching the {proctor.notice?.max ?? 3}-warning limit.
+            </p>
+            <button className="btn primary" onClick={onExit}>Return to setup</button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="room">
       <header className="room-top">
@@ -284,6 +312,11 @@ export default function Room({ interview, user, onFinish, onExit }) {
             <span className="pill" title="Your camera is checked during the interview">
               <span className="dot live" aria-hidden="true" />
               Camera checks on
+            </span>
+          )}
+          {!proctor.status.on && proctor.status.reason && (
+            <span className="pill" role="status" title="The interview can continue, but camera checks are not active">
+              {proctor.status.reason === "checking" ? "Starting camera checks…" : "Camera checks unavailable"}
             </span>
           )}
           <div className="timer" aria-label="Time elapsed">{formatTime(seconds)}</div>

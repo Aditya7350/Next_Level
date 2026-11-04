@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3,<9.0", "httpx>=0.27,<1.0", "ruff>=0.6,<1.0"]
+proctoring = ["numpy<2", "opencv-python-headless<5", "ultralytics", "mediapipe==0.10.14"]
 
 [tool.ruff]
 line-length = 100

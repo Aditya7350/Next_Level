@@ -11,7 +11,7 @@ export const SHOW_FEEDBACK = true;
 // false: the candidate only HEARS each question (like a real interview) and can say "can you repeat the
 // question?" to hear it again. true: the question is also shown as text on screen.
 // The text is shown anyway if the browser can't speak, so nobody is left without the question.
-export const SHOW_QUESTION_TEXT = false;
+export const SHOW_QUESTION_TEXT = true;
 
 // Camera checks during the interview (other people, phones, leaving the tab). Needs the proctoring routes on the
 // backend; if they're missing the interview just runs without checks. Set to false to switch everything off.

@@ -7,8 +7,7 @@ the interview is stored. Frames arrive every few seconds, so a finding must show
 before it counts (one blurry frame is not a violation), and each episode warns once.
 
 Settings (environment variables, all optional):
-  PROCTOR_MAX_WARNINGS     warnings shown to a candidate per interview (default 3). After that, events are still
-                           recorded for the hiring team, but nothing more is shown. Nothing ever ends the interview.
+  PROCTOR_MAX_WARNINGS     warning limit per interview (default 3). Reaching it terminates the interview.
   PROCTOR_YAW_MIN / _MAX   head-turn limits (default 0.30 / 0.70; 0.5 is facing the camera). Tune on real recordings.
   PROCTOR_SAVE_SNAPSHOTS   "1" to keep the frame that triggered a finding (default off: frames are analysed and
                            discarded). If you turn this on, update the consent text and decide how long to keep them.
@@ -33,7 +32,7 @@ MIN_FRAME_GAP = 1.0   # seconds; faster frames are skipped so one client can't h
 EVENT_GAP = 5.0       # seconds; the same browser event twice in a row is recorded once
 
 # Frames in a row (about 4 s apart) before a finding counts.
-NEEDED = {"no_face": 2, "multiple_people": 2, "device": 2, "head_turned": 4}
+NEEDED = {"no_face": 2, "multiple_people": 2, "device": 1, "head_turned": 4}
 # Checked in this order; the first new one in a frame is the one the candidate is warned about.
 PRIORITY = ["multiple_people", "device", "no_face", "head_turned"]
 # Looking away is normal while thinking, so it is recorded for review but never shown as a warning.
