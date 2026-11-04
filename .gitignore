@@ -6,6 +6,8 @@ atlas-credentials.env
 
 # Local Python environments and generated files
 .venv/
+.venv-proctor/
+.python/
 venv/
 node_modules/
 __pycache__/
@@ -20,3 +22,4 @@ build/
 # Candidate data and local interview transcripts
 resumes/
 data/transcripts/
+backend/logs/

@@ -12,8 +12,20 @@ app/proctoring/session.py      # turns frames into warnings and a log, per inter
 app/api/v1/proctoring.py       # the two routes
 ```
 
-Install: `pip install -r requirements-proctoring.txt` (Python 3.11 or 3.12 recommended). Put `yolo11n.pt` next to
-`analyzer.py`, or leave it out and Ultralytics downloads it on first use.
+Install the optional proctoring dependencies from the project root with Python 3.12:
+
+```powershell
+uv sync --python 3.12 --extra dev --extra proctoring
+```
+
+The API can start without these packages; the camera-frame route returns `{"status": "unavailable"}` until they
+are installed. The repository's `yolo11n.pt` is used automatically; if it is absent, Ultralytics downloads it on
+first use. Start the API and frontend from this project directory so the frontend's `/api/v1` proxy reaches it.
+Every analyzed frame, proctoring findings, browser events, and detector failures are written to
+`backend/logs/proctoring.log` (rotated at 5 MB, with three backups). Set `PROCTOR_LOG_FILE` to change the path;
+`PROCTOR_LOG_MAX_BYTES` and
+`PROCTOR_LOG_BACKUPS` adjust rotation. The log records interview IDs, detection counts, device labels, object
+labels and confidence scores for diagnosis; it never stores camera frames.
 
 ## 2. Wire it in (two small edits)
 
@@ -53,10 +65,12 @@ Both need the candidate's login and only work on their own interview while it is
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `PROCTOR_MAX_WARNINGS` | 3 | Warnings shown per interview. After that events are still logged, nothing more is shown. |
+| `PROCTOR_MAX_WARNINGS` | 3 | Terminates the interview when this many candidate warnings have been issued. |
 | `PROCTOR_YAW_MIN` / `PROCTOR_YAW_MAX` | 0.30 / 0.70 | Head-turn limits (0.5 = facing the camera). |
-| `PROCTOR_PERSON_CONF` / `PROCTOR_DEVICE_CONF` | 0.5 / 0.45 | YOLO confidence needed to count a person or device. |
-| `PROCTOR_DEVICE_LABELS` | `cell phone,laptop` | YOLO classes treated as devices. |
+| `PROCTOR_PERSON_CONF` / `PROCTOR_DEVICE_CONF` | 0.5 / 0.10 | YOLO confidence needed to count a person or device. |
+| `PROCTOR_DEVICE_LABELS` | `cell phone,mobile phone,mobile,smartphone,phone,laptop` | YOLO classes treated as devices. |
+| `PROCTOR_IMAGE_SIZE` | 960 | YOLO inference size; higher values help with small objects but use more CPU. |
+| `PROCTOR_DETECTION_FLOOR` | 0.10 | Lowest raw YOLO score kept for diagnostics. |
 | `PROCTOR_SAVE_SNAPSHOTS` | off | `1` keeps the frame behind each finding. Then update the consent text and set a retention period. |
 
 ## 5. What is different from the old code, and why
@@ -66,10 +80,13 @@ Both need the candidate's login and only work on their own interview while it is
   16 seconds. It is logged for review but never shown as a warning, because looking away while thinking is normal.
 - **No face** is now a finding. Before, it counted as fine.
 - **Per interview, not global.** One shared warning counter and one shared log file became state on each interview.
-- **Findings need several frames in a row** (two for a person, device or no face), and each episode warns once.
-- **Nothing ends the interview.** Warnings, then a log for the hiring team. Auto-ending on a false alarm punishes
-  honest candidates. A person should decide.
+- **Findings need several frames in a row** (two for a person or no face), while a detected device warns immediately;
+  each episode warns once.
+- **Three candidate warnings end the interview.** The warning limit is configurable; the default is three.
 - **`book` and `tv` are no longer flagged** (too many false alarms). Edit `PROCTOR_DEVICE_LABELS` to change it.
+- The stock COCO weights have a `cell phone` class but no dedicated tablet class. Higher input resolution and a
+  lower device confidence help with small phones. Reliable tablet detection needs custom weights trained with a
+  `tablet` class; set `PROCTOR_YOLO_WEIGHTS` and include that class in `PROCTOR_DEVICE_LABELS`.
 - **Frames are analysed and discarded** unless you turn on snapshots. The old code saved every suspicious frame
   with a one-second filename, so frames overwrote each other and none were tied to a person.
 - **Blocking work no longer freezes the server.** The route is a plain `def`, so FastAPI runs it in a worker thread.

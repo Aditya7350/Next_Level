@@ -17,8 +17,10 @@ Reworked from the old face_object_proctoring.py. What changed and why:
 Settings (environment variables, all optional):
   PROCTOR_YOLO_WEIGHTS      path or name of the YOLO weights (default yolo11n.pt, looked up next to this file first)
   PROCTOR_PERSON_CONF       minimum confidence to count a person (default 0.5)
-  PROCTOR_DEVICE_CONF       minimum confidence to count a device (default 0.45)
-  PROCTOR_DEVICE_LABELS     comma-separated YOLO classes treated as devices (default "cell phone,laptop")
+  PROCTOR_DEVICE_CONF       minimum confidence to count a device (default 0.10)
+  PROCTOR_DEVICE_LABELS     comma-separated YOLO classes treated as devices (default includes phone aliases)
+  PROCTOR_IMAGE_SIZE        YOLO inference size (default 960; higher helps small handheld devices)
+  PROCTOR_DETECTION_FLOOR   minimum YOLO score returned for diagnostics (default 0.10)
 """
 from __future__ import annotations
 
@@ -26,14 +28,21 @@ import logging
 import os
 import threading
 
-import numpy as np
-
 log = logging.getLogger(__name__)
 
 YOLO_WEIGHTS = os.getenv("PROCTOR_YOLO_WEIGHTS", "yolo11n.pt")
 PERSON_CONF = float(os.getenv("PROCTOR_PERSON_CONF", "0.5"))
-DEVICE_CONF = float(os.getenv("PROCTOR_DEVICE_CONF", "0.45"))
-DEVICE_LABELS = {s.strip() for s in os.getenv("PROCTOR_DEVICE_LABELS", "cell phone,laptop").split(",") if s.strip()}
+DEVICE_CONF = float(os.getenv("PROCTOR_DEVICE_CONF", "0.10"))
+DEVICE_LABELS = {
+    "cell phone", "mobile phone", "mobile", "smartphone", "phone", "laptop",
+}
+DEVICE_LABELS.update(
+    s.strip().lower()
+    for s in os.getenv("PROCTOR_DEVICE_LABELS", "").split(",")
+    if s.strip()
+)
+IMAGE_SIZE = int(os.getenv("PROCTOR_IMAGE_SIZE", "960"))
+DETECTION_FLOOR = float(os.getenv("PROCTOR_DETECTION_FLOOR", "0.10"))
 
 # MediaPipe face-mesh landmark numbers: nose tip, and the two outer edges of the face.
 NOSE_TIP, FACE_EDGE_A, FACE_EDGE_B = 1, 234, 454
@@ -90,7 +99,15 @@ def head_yaw_ratio(landmarks) -> float | None:
 
 def analyze_frame(data: bytes) -> dict:
     """Return {"faces": int, "people": int, "devices": [str], "yaw": float | None} for one JPEG/PNG frame."""
-    import cv2
+    # These are optional, heavyweight proctoring dependencies. Keep them out of
+    # module import so the rest of the API can start without the proctoring extra.
+    try:
+        import cv2
+        import numpy as np
+    except ImportError as exc:
+        raise ProctoringUnavailable(
+            "Proctoring dependencies are not installed; install the proctoring extra."
+        ) from exc
 
     frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     if frame is None:
@@ -100,21 +117,34 @@ def analyze_frame(data: bytes) -> dict:
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     with _infer_lock:
         mesh_result = mesh.process(rgb)
-        detections = yolo.predict(frame, verbose=False, conf=min(PERSON_CONF, DEVICE_CONF))
+        detections = yolo.predict(
+            frame, verbose=False,
+            conf=min(PERSON_CONF, DEVICE_CONF, DETECTION_FLOOR), imgsz=IMAGE_SIZE,
+        )
 
     faces = list(mesh_result.multi_face_landmarks or [])
 
     people = 0
     devices: set[str] = set()
+    device_scores: list[dict] = []
+    object_scores: list[dict] = []
     for result in detections:
         classes = result.boxes.cls.cpu().numpy().astype(int)
         scores = result.boxes.conf.cpu().numpy()
         for cls, score in zip(classes, scores):
-            label = yolo.names[int(cls)]
+            label = str(yolo.names[int(cls)]).strip().lower()
+            if score >= 0.15:
+                object_scores.append({"label": label, "confidence": round(float(score), 3)})
             if label == "person" and score >= PERSON_CONF:
                 people += 1
-            elif label in DEVICE_LABELS and score >= DEVICE_CONF:
-                devices.add(label)
+            elif label in DEVICE_LABELS:
+                device_scores.append({"label": label, "confidence": round(float(score), 3)})
+                if score >= DEVICE_CONF:
+                    devices.add(label)
 
     yaw = head_yaw_ratio(faces[0].landmark) if len(faces) == 1 else None
-    return {"faces": len(faces), "people": people, "devices": sorted(devices), "yaw": yaw}
+    return {
+        "faces": len(faces), "people": people, "devices": sorted(devices),
+        "device_scores": device_scores, "objects": object_scores,
+        "image_size": [int(frame.shape[1]), int(frame.shape[0])], "yaw": yaw,
+    }

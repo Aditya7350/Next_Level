@@ -16,6 +16,7 @@ from backend.app.interview.planner import build_plan
 from backend.app.interview.planner import pick as plan_pick
 from backend.app.interview.reaction import transition
 from backend.app.interview.transcript import save as save_transcript
+from backend.app.proctoring.session import integrity_summary
 from backend.app.services.store import INTERVIEWS, JDS, REPORTS, RESUMES
 
 router = APIRouter(prefix="/interview", tags=["interviews"])
@@ -196,6 +197,7 @@ def _report(interview: dict) -> dict:
             "improvement_areas": sorted({c for a in answers for c in a["evaluation"]["missing_concepts"]}),
             "area_scores": area_scores, "review": review,
             "recommendations": recommendations,
+            "integrity": integrity_summary(interview),
             "completed_at": datetime.now(UTC).isoformat()}
 
 
@@ -250,8 +252,8 @@ def create_interview(payload: CreateInterview, user: dict = Depends(current_user
 @router.post("/{interview_id}/start")
 def start_interview(interview_id: str, user: dict = Depends(current_user)) -> dict:
     interview = _owned(interview_id, user["id"])
-    if interview["status"] == "completed":
-        raise HTTPException(status_code=409, detail="Interview is already complete")
+    if interview["status"] in {"completed", "terminated"}:
+        raise HTTPException(status_code=409, detail="Interview has already ended")
     interview["status"] = "in_progress"
     interview["started_at"] = interview["started_at"] or datetime.now(UTC).isoformat()
     question = _question(interview)
