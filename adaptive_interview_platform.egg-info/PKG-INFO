@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: adaptive-interview-platform
+Version: 0.1.0
+Summary: Adaptive interview platform with RAG-based question selection
+Requires-Python: >=3.12
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: pydantic-settings<3.0,>=2.5
+Requires-Dist: python-multipart<1,>=0.0.9
+Requires-Dist: pypdf<7,>=5
+Requires-Dist: python-docx<2,>=1.1
+Requires-Dist: email-validator<3,>=2.2
+Requires-Dist: openai>=3.24.0
+Requires-Dist: pymongo>=4.18.2
+Provides-Extra: dev
+Requires-Dist: pytest<9.0,>=8.3; extra == "dev"
+Requires-Dist: httpx<1.0,>=0.27; extra == "dev"
+Requires-Dist: ruff<1.0,>=0.6; extra == "dev"
+Provides-Extra: proctoring
+Requires-Dist: numpy<2; extra == "proctoring"
+Requires-Dist: opencv-python-headless<5; extra == "proctoring"
+Requires-Dist: ultralytics; extra == "proctoring"
+Requires-Dist: mediapipe==0.10.14; extra == "proctoring"

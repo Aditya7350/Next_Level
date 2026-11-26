@@ -16,6 +16,8 @@ uv run uvicorn backend.app.main:app --reload
 
 The API is available at `http://127.0.0.1:8000`. Open `/docs` for interactive API docs. Liveness checks are at `/health` and `/api/v1/health`; the complete route guide is in [docs/api.md](docs/api.md).
 
+Proctoring vision dependencies are optional, so the API starts without them and frame checks report `unavailable`. To enable proctoring, follow [README-PROCTORING.md](README-PROCTORING.md).
+
 Open `http://127.0.0.1:8000/demo/` for the browser-based candidate interview demo. It exercises the local API and uses the current keyword-based evaluation, so its score is illustrative only.
 
 ## Project structure
@@ -31,3 +33,5 @@ Open `http://127.0.0.1:8000/demo/` for the browser-based candidate interview dem
 - `docs`: architecture and API guides
 
 The current API is a runnable local MVP. Its records and sessions are in memory; persistent storage, managed auth, LLM-backed evaluation, and vector search are follow-on integrations. Candidate code execution remains disabled until an isolated sandbox is configured.
+Email: admin@interview.ai
+Password: AdminPass123

@@ -2,7 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.ai.question_generation import generate_resume_questions
+from backend.app.api.v1.interviews import _report
 from backend.app.main import app
+from backend.app.proctoring.session import integrity_summary
 from backend.app.services.store import INTERVIEWS, JDS, REPORTS, RESUMES, SESSIONS, USERS
 
 client = TestClient(app)
@@ -91,3 +93,20 @@ def test_interview_creation_uses_uploaded_resume_details() -> None:
     assert "Platform Engineer" in prompt_text
     assert len(questions) == 5
     assert all(question["difficulty"] == "advanced" for question in questions)
+
+
+def test_interview_report_includes_proctoring_integrity_summary() -> None:
+    interview = {
+        "id": "iv_123",
+        "user_id": "user_123",
+        "answers": [],
+        "selected_questions": [],
+        "proctoring": {
+            "events": [{"type": "tab_hidden", "at": "2026-11-02T00:00:00+00:00"}],
+            "warnings": 1,
+        },
+    }
+
+    report = _report(interview)
+
+    assert report["integrity"] == integrity_summary(interview)

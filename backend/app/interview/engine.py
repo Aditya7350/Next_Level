@@ -8,7 +8,7 @@ After every answer the engine does this:
   2. BUILD QUERY  what the candidate SAID decides what we search for:
                     strong answer  -> dig deeper into the things they mentioned
                     medium answer  -> mix of what they mentioned and what they missed
-                    weak answer    -> probe the gaps (after one clarifying follow-up)
+                    weak answer    -> move to a different subtopic
                   plus a second query from the JD / resume skills so the interview stays on target.
   3. RETRIEVE     vector search for both queries (no difficulty filter, ranking handles difficulty).
   4. FILTER       drop already-asked questions and semantically near-identical ones.
@@ -37,8 +37,6 @@ try:
 except ImportError:
     pass
 
-from backend.app.interview.evaluator import generate_follow_up
-
 log = logging.getLogger(__name__)
 
 LEVELS = ["basic", "intermediate", "advanced"]
@@ -52,8 +50,7 @@ REDUNDANCY_PENALTY = 0.15        # subtracted when the question tests concepts t
 SEMANTIC_SPAN_FLOOR = 0.15       # cosine scores bunch together; differences below this are mostly noise
 SEMANTIC_DUP_THRESHOLD = float(os.getenv("SEMANTIC_DUP_THRESHOLD", "0.90"))  # cosine; calibrate on your bank
 CANDIDATES_PER_QUERY = 15
-MAX_FOLLOW_UPS = 2
-AVOID_PENALTY = 0.35             # after a failed follow-up, steer away from that subtopic ("let's move on")
+AVOID_PENALTY = 0.35             # after a weak answer, steer away from that subtopic ("let's move on")
 # One-word hooks like "LLM" or "model" match half the bank and must not steer the interview.
 GENERIC = frozenset("""llm llms rag model models embedding embeddings vector vectors retrieval search system systems
 data api apis database databases""".split())
@@ -342,7 +339,7 @@ def start_session(interview: dict, focus_skills: list[str] | str, start_difficul
     skills = [s.strip() for s in skills if s and s.strip()]
     level = API_TO_BANK.get(start_difficulty, "intermediate")
     interview["adaptive_state"] = {"level": level, "skills": skills, "focus": " ".join(skills),
-                                   "subtopics": {}, "follow_ups": 0, "weak": [], "covered": [],
+                                   "subtopics": {}, "weak": [], "covered": [],
                                    "history": []}
     opening = LEVELS[max(0, _level_idx(level) - 1)] if WARM_UP_OPENING else level
     question = _select(interview, None, None, opening, 0)
@@ -355,13 +352,11 @@ def next_question(interview: dict, evaluation: dict, answered: dict, answer_text
     score = int(evaluation.get("score", 3))
     missing = evaluation.get("missing_concepts", [])
     kind = answered.get("kind", "main")
-    idx = len(interview["selected_questions"]) + 1
-
     # State update (section 12): weak and covered topics, history.
     if score <= 3:
-        for m in missing:
-            if m not in st["weak"]:
-                st["weak"].append(m)
+        for concept in missing:
+            if concept not in st["weak"]:
+                st["weak"].append(concept)
         st["weak"] = st["weak"][-8:]
     for c in evaluation.get("covered_concepts", []):
         if c not in st["covered"]:
@@ -371,19 +366,8 @@ def next_question(interview: dict, evaluation: dict, answered: dict, answer_text
                           "level": st["level"], "score": score,
                           "mentioned": evaluation.get("mentioned_concepts", []), "missing": missing})
 
-    # A weak first answer gets one clarifying follow-up before we move on.
-    if kind == "main" and score <= 2 and st["follow_ups"] < MAX_FOLLOW_UPS:
-        st["follow_ups"] += 1
-        return {"id": f"q{idx}", "bank_id": None, "kind": "follow_up", "parent_id": answered["id"],
-                "question": generate_follow_up(answered, answer_text, missing),
-                "topic": answered.get("topic"), "subtopic": answered.get("subtopic"),
-                "difficulty": answered.get("difficulty"),
-                "expected_concepts": missing[:3],
-                # judged only on what was missed the first time, not on the whole answer key again
-                "key_points": evaluation.get("missing_key_points") or answered.get("key_points", [])}
-
     old_level = st["level"]
     new_level = target_level(old_level, score, kind)
-    avoid = answered.get("subtopic") if (kind == "follow_up" and score <= 2) else None
+    avoid = answered.get("subtopic") if score <= 3 else None
     return _select(interview, evaluation, answered, new_level,
                    _level_idx(new_level) - _level_idx(old_level), avoid)

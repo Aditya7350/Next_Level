@@ -16,7 +16,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3,<9.0", "httpx>=0.27,<1.0", "ruff>=0.6,<1.0"]
+dev = ["pytest>=8.3,<9.0", "httpx>=0.27,<1.0", "ruff>=0.6,<1.0", "numpy", "opencv-python-headless"]
+proctoring = ["numpy<2", "opencv-python-headless<5", "ultralytics", "mediapipe==0.10.14"]
 
 [tool.ruff]
 line-length = 100
@@ -29,6 +30,9 @@ testpaths = ["tests"]
 dev = [
     "httpx>=0.28.1",
 ]
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/app/api/**/*.py" = ["B008"]

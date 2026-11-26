@@ -21,13 +21,40 @@ function Status({ ok, pending, children }) {
   );
 }
 
-function DeviceCheck() {
+function DeviceCheck({ interviewId, onBaselineVerified }) {
   const { stream, camera, mic, level } = useDevices({ audio: true });
   const videoRef = useRef(null);
+  const [capturing, setCapturing] = useState(false);
+  const [baselineThumb, setBaselineThumb] = useState(null);
+  const [baselineMsg, setBaselineMsg] = useState("");
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = stream && camera === "ok" ? stream : null;
   }, [stream, camera]);
+
+  async function captureBaseline() {
+    const video = videoRef.current;
+    if (!video || !interviewId || video.readyState < 2) return;
+    setCapturing(true);
+    setBaselineMsg("");
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+      if (!blob) throw new Error("Could not capture photo.");
+      await api.setProctorBaseline(interviewId, blob);
+      const thumb = URL.createObjectURL(blob);
+      setBaselineThumb(thumb);
+      setBaselineMsg("Candidate identity verified & locked.");
+      onBaselineVerified?.(true);
+    } catch (err) {
+      setBaselineMsg(err.message || "Failed to register reference photo. Please face the camera.");
+    } finally {
+      setCapturing(false);
+    }
+  }
 
   return (
     <section className="card">
@@ -55,7 +82,41 @@ function DeviceCheck() {
           {speechInputSupported ? "Voice answers are supported in this browser" : "Voice answers aren't supported here. Use Chrome or Edge, or type your answers."}
         </Status>
       </ul>
-      <p className="muted small">
+
+      {PROCTORING_ENABLED && camera === "ok" && interviewId && (
+        <div style={{ marginTop: "1rem", padding: "0.85rem", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid var(--line, #333)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              {baselineThumb ? (
+                <img src={baselineThumb} alt="Baseline preview" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: "2px solid #10b981" }} />
+              ) : (
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#222", display: "grid", placeItems: "center", color: "#888", fontSize: "1.2rem" }}>
+                  👤
+                </div>
+              )}
+              <div>
+                <strong style={{ fontSize: "0.9rem", display: "block" }}>
+                  {baselineThumb ? "Candidate Identity Verified" : "Capture Reference Photo"}
+                </strong>
+                <span className="muted small" style={{ fontSize: "0.78rem" }}>
+                  {baselineMsg || "Locks your face signature to verify you throughout the interview."}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`btn ${baselineThumb ? "ghost" : "primary"}`}
+              style={{ fontSize: "0.82rem", padding: "0.4rem 0.8rem", whiteSpace: "nowrap" }}
+              onClick={captureBaseline}
+              disabled={capturing}
+            >
+              {capturing ? "Verifying…" : baselineThumb ? "Retake photo" : "Capture photo"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <p className="muted small" style={{ marginTop: "0.75rem" }}>
         {PROCTORING_ENABLED ? PROCTORING_PRIVACY_NOTE : "Your video stays on your device. Nothing is recorded."}
       </p>
     </section>
@@ -198,7 +259,7 @@ export default function Setup({ user, onReady, onLogout }) {
 
         {step === "check" && (
           <div className="check-step">
-            <DeviceCheck />
+            <DeviceCheck interviewId={created?.id} />
             <section className="card">
               <h2>Ready when you are</h2>
               <p className="muted small">

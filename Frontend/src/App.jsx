@@ -5,16 +5,20 @@ import Auth from "./screens/Auth.jsx";
 import Setup from "./screens/Setup.jsx";
 import Room from "./screens/Room.jsx";
 import Report from "./screens/Report.jsx";
+import AdminDashboard from "./screens/AdminDashboard.jsx";
 
-// Signed-out pages use the URL hash: "#/login", "#/register", anything else is the landing page.
+// Signed-out pages use the URL hash: "#/login", "#/register", "#/admin-login", anything else is the landing page.
 function readRoute() {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  return hash === "login" || hash === "register" ? hash : "landing";
+  return hash === "login" || hash === "register" || hash === "admin-login" ? hash : "landing";
 }
 
 export default function App() {
   const [user, setUser] = useState(() => (session.token() ? session.user() : null));
-  const [screen, setScreen] = useState("setup"); // setup | room | report
+  const [screen, setScreen] = useState(() => {
+    const u = session.token() ? session.user() : null;
+    return u?.role === "admin" ? "admin" : "setup";
+  });
   const [interview, setInterview] = useState(null);
   const [report, setReport] = useState(null);
   const [route, setRoute] = useState(readRoute);
@@ -50,11 +54,22 @@ export default function App() {
         mode={route}
         onDone={(token, u) => {
           session.save(token, u);
-          // Leave the sign-in route behind so a refresh doesn't land on it.
           window.history.replaceState(null, "", window.location.pathname + window.location.search);
-          setRoute(readRoute()); // replaceState doesn't fire "hashchange", so refresh the route by hand
+          setRoute(readRoute());
           setUser(u);
+          setScreen(u?.role === "admin" ? "admin" : "setup");
         }}
+      />
+    );
+  }
+
+  // Admin Portal (Accessible ONLY to users with role === 'admin')
+  if (screen === "admin" && user.role === "admin") {
+    return (
+      <AdminDashboard
+        user={user}
+        onSwitchToCandidate={() => setScreen("setup")}
+        onLogout={logout}
       />
     );
   }
@@ -90,6 +105,7 @@ export default function App() {
     );
   }
 
+  // Candidate setup view
   return (
     <Setup
       user={user}

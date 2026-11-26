@@ -10,15 +10,32 @@ router = APIRouter(tags=["reports"])
 @router.get("/interview/{interview_id}/report")
 def get_report(interview_id: str, user: dict = Depends(current_user)) -> dict:
     report = REPORTS.get(interview_id)
-    if report is None or report["user_id"] != user["id"]:
+    if report is None:
+        interview = INTERVIEWS.get(interview_id)
+        if interview and (interview.get("user_id") == user["id"] or user.get("role") == "admin"):
+            from backend.app.api.v1.interviews import _report, save_transcript
+            from backend.app.services.store import USERS
+            report = _report(interview)
+            REPORTS[interview_id] = report
+            cand_user = USERS.get(interview.get("user_id"), user)
+            save_transcript(interview, cand_user, report)
+
+    if report is None or (report["user_id"] != user["id"] and user.get("role") != "admin"):
         raise HTTPException(status_code=404, detail="Interview report not found or interview is incomplete")
     return report
 
 
 @router.get("/interview/history")
 def history(user: dict = Depends(current_user)) -> dict:
-    rows = [{k: v for k, v in interview.items() if k not in {"selected_questions", "answers"}}
-            for interview in INTERVIEWS.values() if interview["user_id"] == user["id"]]
+    rows = []
+    for interview in INTERVIEWS.values():
+        if interview["user_id"] == user["id"]:
+            row = {k: v for k, v in interview.items() if k not in {"selected_questions", "answers"}}
+            rep = REPORTS.get(interview["id"])
+            if rep:
+                row["score"] = rep.get("score")
+                row["verdict"] = rep.get("verdict")
+            rows.append(row)
     return {"items": rows, "total": len(rows)}
 
 

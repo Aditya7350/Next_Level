@@ -32,6 +32,8 @@ def _words(text):
 
 @pytest.fixture(autouse=True)
 def fake_bank(monkeypatch):
+    monkeypatch.setattr(engine, "USE_BANK", True)
+
     def fake_search(db, query, k=5, topic=None, subtopic=None, difficulty=None, exclude_ids=None, with_vectors=False):
         qw, out = _words(query), []
         for d in BANK:
@@ -46,7 +48,6 @@ def fake_bank(monkeypatch):
     monkeypatch.setattr(ingestion, "search_questions", fake_search)
     monkeypatch.setattr(engine, "_db", lambda: None)
     monkeypatch.setattr(engine, "_asked_vectors", lambda ids: {})
-    monkeypatch.setattr(engine, "generate_follow_up", lambda q, a, m: "Can you elaborate?")
 
 
 def _start(level="intermediate", skills=("RAG",)):
@@ -89,20 +90,26 @@ def test_same_answer_different_mentions_gives_different_next_question():
     assert qa["subtopic"] == "vector search" and qb["subtopic"] == "embeddings"
 
 
-def test_weak_answer_probes_the_gap_at_an_easier_level_after_one_follow_up():
+def test_weak_answer_moves_to_a_new_question_without_follow_up():
     iv = _start()
-    follow = _answer(iv, 1, missing=["faiss"])
-    assert follow["kind"] == "follow_up" and follow["parent_id"] == "q1"
-    after = _answer(iv, 2, missing=["faiss"])
-    assert after["kind"] == "main" and after["difficulty"] == "foundational"
-    assert after["subtopic"] == "vector search"          # drawn to the weak topic (FAISS)
-    assert after["selection"]["intent"] == "move on" and "move on" in after["lead_in"].lower()
+    first_subtopic = iv["selected_questions"][0]["subtopic"]
+    nxt = _answer(iv, 1, missing=["faiss"])
+    assert nxt["kind"] == "main" and nxt["difficulty"] == "foundational"
+    assert nxt["subtopic"] != first_subtopic
+    assert nxt["selection"]["intent"] == "move on" and "move on" in nxt["lead_in"].lower()
+
+
+def test_partial_answer_also_moves_to_a_different_subtopic():
+    iv = _start()
+    first_subtopic = iv["selected_questions"][0]["subtopic"]
+    nxt = _answer(iv, 3, missing=["chunk overlap"])
+    assert nxt["kind"] == "main" and nxt["subtopic"] != first_subtopic
+    assert nxt["selection"]["intent"] == "move on"
 
 
 def test_never_two_levels_away_from_target_when_something_closer_exists():
     iv = _start()
-    nxt = _answer(iv, 1, missing=["hnsw"])                # follow-up first
-    nxt = _answer(iv, 1, missing=["hnsw"])                # then easier main question
+    nxt = _answer(iv, 1, missing=["hnsw"])
     assert nxt["difficulty"] != "advanced"
 
 
@@ -311,14 +318,14 @@ def test_lead_in_does_not_claim_a_link_when_only_one_word_matches():
 
 
 # ----------------------------------------------------------------- fixes from the second live run
-def test_follow_up_is_judged_only_on_the_points_that_were_missed():
+def test_weak_answer_moves_on_instead_of_generating_a_follow_up():
     iv = _start()
     q = iv["selected_questions"][-1]
-    ev = {"score": 2, "mentioned_concepts": [], "missing_concepts": ["legal processing"], "covered_concepts": ["definition"],
-          "missing_key_points": ["Explain how it is applied to legal documents", "Fits model input limits"]}
-    follow = engine.next_question(iv, ev, q, "a short answer")
-    assert follow["kind"] == "follow_up"
-    assert follow["key_points"] == ["Explain how it is applied to legal documents", "Fits model input limits"]
+    ev = {"score": 2, "mentioned_concepts": [], "missing_concepts": ["legal processing"],
+          "covered_concepts": ["definition"]}
+    nxt = engine.next_question(iv, ev, q, "a short answer")
+    assert nxt["kind"] == "main"
+    assert nxt["subtopic"] != q["subtopic"]
 
 
 def test_judge_reports_full_text_of_missing_points_by_number_even_if_returned_out_of_order(monkeypatch):
@@ -334,11 +341,10 @@ def test_judge_reports_full_text_of_missing_points_by_number_even_if_returned_ou
     assert out["covered_concepts"] == ["definition"]
 
 
-def test_interviewer_moves_on_after_a_weak_answer_and_a_weak_follow_up():
+def test_interviewer_moves_on_after_a_weak_answer():
     iv = _start()
     first_sub = iv["selected_questions"][0]["subtopic"]
-    assert _answer(iv, 1, missing=["chunk size"])["kind"] == "follow_up"
-    nxt = _answer(iv, 2, missing=["chunk size"])
+    nxt = _answer(iv, 1, missing=["chunk size"])
     assert nxt["subtopic"] != first_sub
     assert nxt["selection"]["intent"] == "move on" and nxt["lead_in"].startswith("No problem")
 
@@ -348,7 +354,6 @@ def test_moving_on_is_soft_it_never_ends_the_interview_early(monkeypatch):
     only_chunking = [d for d in BANK if d["subtopic"] == "chunking"]
     monkeypatch.setattr(sys.modules[__name__], "BANK", only_chunking)
     iv = _start("foundational")
-    _answer(iv, 1, missing=["x"])
     nxt = _answer(iv, 1, missing=["x"])
     assert nxt is not None and nxt["subtopic"] == "chunking"
 

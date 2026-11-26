@@ -16,7 +16,8 @@ from backend.app.interview.planner import build_plan
 from backend.app.interview.planner import pick as plan_pick
 from backend.app.interview.reaction import transition
 from backend.app.interview.transcript import save as save_transcript
-from backend.app.services.store import INTERVIEWS, JDS, REPORTS, RESUMES
+from backend.app.proctoring.session import integrity_summary
+from backend.app.services.store import INTERVIEWS, JDS, REPORTS, RESUMES, USERS
 
 router = APIRouter(prefix="/interview", tags=["interviews"])
 QUESTION_BANK = [
@@ -155,12 +156,10 @@ def _skills_for(resume_skills: list[str], jd_skills: list[str]) -> list[str]:
 
 
 def _choose_next(interview: dict, evaluation: dict, answered: dict, answer: str) -> dict | None:
-    """Follow-up on a weak answer, else the next question: the candidate's own projects in the reserved slots,
+    """Choose a new question: the candidate's projects in reserved slots,
     otherwise a bank question when one clearly fits their field, otherwise the next question from their plan."""
     number = len(interview["selected_questions"]) + 1
-    chosen = adaptive_next(interview, evaluation, answered, answer)        # a follow-up, or a bank question
-    if chosen and chosen.get("kind") == "follow_up":
-        return chosen
+    chosen = adaptive_next(interview, evaluation, answered, answer)
     level = (interview.get("adaptive_state") or {}).get("level", "intermediate")
     if number in PROJECT_SLOTS:
         chosen = plan_pick(interview, level, "projects") or chosen
@@ -172,31 +171,107 @@ def _choose_next(interview: dict, evaluation: dict, answered: dict, answer: str)
 
 
 def _report(interview: dict) -> dict:
-    answers = interview["answers"]
-    qmap = {q["id"]: q for q in interview["selected_questions"]}
-    scores = [a["evaluation"]["score"] for a in answers]
+    answers = interview.get("answers", [])
+    qmap = {q["id"]: q for q in interview.get("selected_questions", [])}
+    scores = [a["evaluation"]["score"] for a in answers if "evaluation" in a and "score" in a["evaluation"]]
     score = round(sum(scores) / len(scores), 1) if scores else 0
 
     by_area = defaultdict(list)
     for a in answers:
-        q = qmap.get(a["question_id"], {})
-        by_area[q.get("subtopic") or q.get("topic") or "general"].append(a["evaluation"]["score"])
+        q = qmap.get(a.get("question_id"), {})
+        area = q.get("subtopic") or q.get("topic") or "General"
+        ev = a.get("evaluation") or {}
+        if "score" in ev:
+            by_area[area].append(ev["score"])
     area_scores = {area: round(sum(v) / len(v), 1) for area, v in by_area.items()}
     weakest = sorted(area_scores.items(), key=lambda kv: kv[1])[:3]
     recommendations = [f"Review {area} (average {avg}/5)." for area, avg in weakest if avg < 4] \
         or ["Practice explaining your reasoning with specific examples."]
-    # For practice: show what a strong answer contains on the questions that scored 3 or lower.
-    review = [{"question": a["question"], "score": a["evaluation"]["score"],
-               "missing": a["evaluation"]["missing_concepts"],
-               "key_points": qmap.get(a["question_id"], {}).get("key_points", [])}
-              for a in answers if a["evaluation"]["score"] <= 3 and a.get("kind", "main") == "main"][:6]
 
-    return {"id": secrets.token_urlsafe(16), "interview_id": interview["id"], "user_id": interview["user_id"],
-            "score": score, "strengths": sorted({c for a in answers for c in a["evaluation"]["covered_concepts"]}),
-            "improvement_areas": sorted({c for a in answers for c in a["evaluation"]["missing_concepts"]}),
-            "area_scores": area_scores, "review": review,
-            "recommendations": recommendations,
-            "completed_at": datetime.now(UTC).isoformat()}
+    # Weak answer review points
+    review = [{"question": a["question"], "score": a["evaluation"]["score"],
+               "missing": a["evaluation"].get("missing_concepts", []),
+               "key_points": qmap.get(a["question_id"], {}).get("key_points", [])}
+              for a in answers if a.get("evaluation", {}).get("score", 5) <= 3 and a.get("kind", "main") == "main"][:6]
+
+    # Full Q&A audit trail
+    qna = []
+    for idx, a in enumerate(answers):
+        q = qmap.get(a.get("question_id"), {})
+        ev = a.get("evaluation") or {}
+        qna.append({
+            "index": idx + 1,
+            "question": a.get("question") or q.get("question", ""),
+            "candidate_answer": a.get("answer", ""),
+            "score": ev.get("score", 0),
+            "topic": q.get("subtopic") or q.get("topic") or "General",
+            "difficulty": q.get("difficulty", "intermediate"),
+            "covered": ev.get("covered_concepts", []),
+            "missing": ev.get("missing_concepts", []),
+            "feedback": ev.get("feedback", ""),
+            "key_points": q.get("key_points", []),
+        })
+
+    # Executive Verdict
+    if score >= 4.2:
+        verdict = "Strong Hire"
+    elif score >= 3.6:
+        verdict = "Qualified"
+    elif score >= 3.0:
+        verdict = "Borderline / Needs Review"
+    else:
+        verdict = "Needs Improvement"
+
+    # Candidate Profile Info
+    user_info = USERS.get(interview.get("user_id"), {})
+    candidate_name = user_info.get("name", "Candidate")
+    candidate_email = user_info.get("email", "")
+
+    # Calculate duration
+    started = interview.get("started_at")
+    completed = datetime.now(UTC).isoformat()
+    duration_minutes = 0
+    if started:
+        try:
+            start_dt = datetime.fromisoformat(started)
+            end_dt = datetime.fromisoformat(completed)
+            duration_minutes = max(1, round((end_dt - start_dt).total_seconds() / 60))
+        except Exception:
+            duration_minutes = 15
+
+    # Integrity Summary with score and verdict
+    integrity = integrity_summary(interview)
+
+    is_terminated = interview.get("status") == "terminated"
+    termination_reason = interview.get("termination_reason")
+    if is_terminated:
+        if termination_reason == "proctoring_warning_limit":
+            recommendations.insert(0, "Interview terminated early: proctoring limit was reached (guidelines exceeded).")
+        else:
+            recommendations.insert(0, "Interview was concluded early before answering all questions.")
+
+    return {
+        "id": secrets.token_urlsafe(16),
+        "interview_id": interview["id"],
+        "user_id": interview["user_id"],
+        "status": interview.get("status", "completed"),
+        "termination_reason": termination_reason,
+        "candidate_name": candidate_name,
+        "candidate_email": candidate_email,
+        "role_title": interview.get("interview_type", "Technical Interview"),
+        "difficulty": interview.get("difficulty", "intermediate"),
+        "duration_minutes": duration_minutes,
+        "verdict": verdict,
+        "score": score,
+        "strengths": sorted({c for a in answers for c in a.get("evaluation", {}).get("covered_concepts", [])}),
+        "improvement_areas": sorted({c for a in answers for c in a.get("evaluation", {}).get("missing_concepts", [])}),
+        "area_scores": area_scores,
+        "review": review,
+        "qna": qna,
+        "recommendations": recommendations,
+        "integrity": integrity,
+        "completed_at": completed,
+    }
 
 
 @router.post("/create", status_code=201)
@@ -250,8 +325,8 @@ def create_interview(payload: CreateInterview, user: dict = Depends(current_user
 @router.post("/{interview_id}/start")
 def start_interview(interview_id: str, user: dict = Depends(current_user)) -> dict:
     interview = _owned(interview_id, user["id"])
-    if interview["status"] == "completed":
-        raise HTTPException(status_code=409, detail="Interview is already complete")
+    if interview["status"] in {"completed", "terminated"}:
+        raise HTTPException(status_code=409, detail="Interview has already ended")
     interview["status"] = "in_progress"
     interview["started_at"] = interview["started_at"] or datetime.now(UTC).isoformat()
     question = _question(interview)
@@ -311,6 +386,7 @@ def submit_answer(interview_id: str, payload: AnswerRequest, user: dict = Depend
     next_question = _question(interview)
     if next_question is None:
         interview["status"] = "completed"
+        interview["ended_at"] = datetime.now(UTC).isoformat()
         report = _report(interview)
         REPORTS[interview_id] = report
     else:
@@ -323,3 +399,16 @@ def submit_answer(interview_id: str, payload: AnswerRequest, user: dict = Depend
     save_transcript(interview, user, report)
     return {"evaluation": _public_eval(evaluation), "next_question": _public(next_question),
             "status": interview["status"], "report": report}
+
+
+@router.post("/{interview_id}/finish")
+def finish_interview(interview_id: str, user: dict = Depends(current_user)) -> dict:
+    """Manually complete or conclude an interview, generating its evaluation scorecard."""
+    interview = _owned(interview_id, user["id"])
+    if interview.get("status") not in ("completed", "terminated"):
+        interview["status"] = "completed"
+        interview["ended_at"] = datetime.now(UTC).isoformat()
+    report = _report(interview)
+    REPORTS[interview_id] = report
+    save_transcript(interview, user, report)
+    return {"status": interview["status"], "report": report}

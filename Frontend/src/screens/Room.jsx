@@ -7,6 +7,7 @@ import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen } fr
 import { useProctoring } from "../proctor.js";
 
 const BARS = [16, 30, 48, 26, 62, 84, 50, 34, 70, 96, 58, 38, 74, 52, 30, 64, 42, 22, 34, 18];
+const AUTO_SUBMIT_DELAY_MS = 3000;
 
 function formatTime(total) {
   const m = String(Math.floor(total / 60)).padStart(2, "0");
@@ -62,10 +63,12 @@ function CameraTile({ enabled, videoRef: outerRef }) {
 
 function greetingFor(user, interview) {
   const first = String(user?.name || "").trim().split(/\s+/)[0];
-  const role = interview.role_title && interview.role_title !== "Practice interview" ? interview.role_title : "";
-  const hi = first ? `Hi ${first}, welcome.` : "Hi, welcome.";
-  const about = role ? ` I'll be interviewing you for the ${role} role today.` : " I'll be your interviewer today.";
-  return `${hi} I'm Aria.${about} Relax, this is just a conversation. To begin, could you tell me a little about yourself and your background?`;
+  const roleTitle = String(interview.role_title || "").trim();
+  const role = roleTitle && !["interview", "practice interview"].includes(roleTitle.toLowerCase())
+    ? ` I'll be chatting with you about the ${roleTitle} role today.`
+    : "";
+  const hi = first ? `Hi ${first}, thanks for joining me.` : "Hi, thanks for joining me.";
+  return `${hi} I'm Aria.${role} This is a relaxed conversation, so take your time. To get started, could you tell me a little about yourself and your background?`;
 }
 
 export default function Room({ interview, user, onFinish, onExit }) {
@@ -85,6 +88,7 @@ export default function Room({ interview, user, onFinish, onExit }) {
 
   const cancelSpeech = useRef(() => {});
   const startedRef = useRef(false);
+  const lastSubmitted = useRef("");
   const micRef = useRef(true);
   const voiceRef = useRef(true);
   micRef.current = micOn;
@@ -94,15 +98,30 @@ export default function Room({ interview, user, onFinish, onExit }) {
 
   // Camera checks start once the first question has arrived (the interview must be "in progress" on the server).
   const cameraRef = useRef(null);
-  const proctor = useProctoring({ interviewId: interview.id, videoRef: cameraRef, active: phase !== "loading" });
+  const proctor = useProctoring({
+    interviewId: interview.id,
+    videoRef: cameraRef,
+    active: phase !== "loading" && phase !== "ended",
+  });
 
   const listener = useListener({
     onFinal: (text) => {
       if (isRepeatRequest(text)) repeatQuestion();
-      else setDraft((d) => (d ? `${d} ${text}` : text));
+      else {
+        lastSubmitted.current = "";
+        setDraft((d) => (d ? `${d} ${text}` : text));
+      }
     },
   });
   const { start: startListening, stop: stopListening } = listener;
+
+  useEffect(() => {
+    if (!proctor.status.terminated) return;
+    stopListening();
+    cancelSpeech.current();
+    exitFullscreen();
+    setPhase("ended");
+  }, [proctor.status.terminated, stopListening]);
 
   const beginAnswer = useCallback(() => {
     setPhase("ready");
@@ -112,6 +131,7 @@ export default function Room({ interview, user, onFinish, onExit }) {
   const ask = useCallback(
     (q) => {
       const text = [q.lead_in, q.question].filter(Boolean).join(" ");
+      lastSubmitted.current = "";
       setQuestion(q);
       setDraft("");
       setTranscript((t) => [...t, { who: "aria", text }]);
@@ -157,13 +177,14 @@ export default function Room({ interview, user, onFinish, onExit }) {
 
   async function submit() {
     const answer = draft.trim();
-    if (!answer || phase === "thinking") return;
+    if (!answer || phase === "thinking" || lastSubmitted.current === answer) return;
     if (isRepeatRequest(answer)) {
       // Typed "repeat the question": answer it, don't send it to be scored.
       setDraft("");
       repeatQuestion();
       return;
     }
+    lastSubmitted.current = answer;
     stopListening();
     cancelSpeech.current();
     setPhase("thinking");
@@ -204,6 +225,15 @@ export default function Room({ interview, user, onFinish, onExit }) {
     }
   }
 
+  useEffect(() => {
+    const answer = draft.trim();
+    if (phase !== "ready" || !answer || listener.interim.trim()) return undefined;
+    const timer = window.setTimeout(() => {
+      if (lastSubmitted.current !== answer) void submit();
+    }, AUTO_SUBMIT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [draft, listener.interim, phase]);
+
   function repeatQuestion() {
     if (!question || phase === "thinking" || phase === "loading") return;
     stopListening();
@@ -229,12 +259,41 @@ export default function Room({ interview, user, onFinish, onExit }) {
     }
   }
 
-  function leave() {
-    if (window.confirm("End this interview? Your answers so far won't be scored into a report.")) {
-      cancelSpeech.current();
-      stopListening();
+  const [loadingReport, setLoadingReport] = useState(false);
+
+  async function handleViewReport() {
+    setLoadingReport(true);
+    try {
+      const rep = proctor.status?.report || (await api.getReport(interview.id));
       exitFullscreen();
-      onExit();
+      onFinish(rep);
+    } catch (err) {
+      setError(err.message || "Failed to load report");
+      setLoadingReport(false);
+    }
+  }
+
+  async function leave() {
+    if (index > 1 || transcript.some((t) => t.who === "you")) {
+      if (window.confirm("End this interview now? A report will be generated based on your answers so far.")) {
+        cancelSpeech.current();
+        stopListening();
+        exitFullscreen();
+        try {
+          const res = await api.finishInterview(interview.id);
+          const rep = res.report || (await api.getReport(interview.id));
+          onFinish(rep);
+        } catch {
+          onExit();
+        }
+      }
+    } else {
+      if (window.confirm("End this interview? No answers have been submitted yet.")) {
+        cancelSpeech.current();
+        stopListening();
+        exitFullscreen();
+        onExit();
+      }
     }
   }
 
@@ -255,6 +314,31 @@ export default function Room({ interview, user, onFinish, onExit }) {
         : phase === "thinking"
           ? "Aria is thinking about your answer…"
           : "Your turn. Answer out loud, or type below.";
+
+  if (phase === "ended") {
+    return (
+      <div className="room">
+        <main className="room-main" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+          <section className="card" style={{ maxWidth: "560px", width: "100%", textAlign: "center", padding: "40px 28px" }}>
+            <div style={{ fontSize: "44px", marginBottom: "14px" }}>⚠️</div>
+            <h1 style={{ marginBottom: "12px", fontSize: "24px" }}>Interview Concluded</h1>
+            <p className="muted" style={{ marginBottom: "22px", lineHeight: "1.6" }}>
+              The interview was stopped after reaching the {proctor.notice?.max ?? 5}-warning proctoring limit.
+              Your scorecard and evaluation report have been generated based on the questions answered prior to conclusion.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="btn primary" onClick={handleViewReport} disabled={loadingReport}>
+                {loadingReport ? "Generating Report…" : "View Evaluation Report"}
+              </button>
+              <button className="btn subtle" onClick={onExit}>
+                Return to Dashboard
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="room">
@@ -284,6 +368,11 @@ export default function Room({ interview, user, onFinish, onExit }) {
             <span className="pill" title="Your camera is checked during the interview">
               <span className="dot live" aria-hidden="true" />
               Camera checks on
+            </span>
+          )}
+          {!proctor.status.on && proctor.status.reason && (
+            <span className="pill" role="status" title="The interview can continue, but camera checks are not active">
+              {proctor.status.reason === "checking" ? "Starting camera checks…" : "Camera checks unavailable"}
             </span>
           )}
           <div className="timer" aria-label="Time elapsed">{formatTime(seconds)}</div>
@@ -336,11 +425,14 @@ export default function Room({ interview, user, onFinish, onExit }) {
             <textarea
               id="answer"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                lastSubmitted.current = "";
+                setDraft(e.target.value);
+              }}
               disabled={phase === "thinking" || phase === "loading"}
               rows={3}
               maxLength={12000}
-              placeholder={speechInputSupported ? "Speak, or type here. You can edit before sending." : "Type your answer here."}
+              placeholder={speechInputSupported ? "Speak or type your answer here." : "Type your answer here."}
             />
             {listener.interim && <p className="interim">{listener.interim}</p>}
             {listener.error && <p className="error small">{listener.error}</p>}
@@ -371,7 +463,7 @@ export default function Room({ interview, user, onFinish, onExit }) {
       )}
 
       <footer className="controls">
-        <p className="muted small hint">Take your time. Aria waits until you press "I've finished answering".</p>
+        <p className="muted small hint">Take your time. Your answer submits automatically after 3 seconds of silence.</p>
         <div className="control-row">
           <button className={`icon-btn ${micOn ? "" : "off"}`} onClick={toggleMic} aria-label={micOn ? "Turn microphone off" : "Turn microphone on"} aria-pressed={!micOn}>
             <Icon>
@@ -405,9 +497,6 @@ export default function Room({ interview, user, onFinish, onExit }) {
         </div>
         <div className="control-row end">
           <button className="btn danger" onClick={leave}>End interview</button>
-          <button className="btn primary" onClick={submit} disabled={!draft.trim() || phase === "thinking" || phase === "loading"}>
-            {phase === "thinking" ? "Sending…" : "I've finished answering"}
-          </button>
         </div>
       </footer>
     </div>

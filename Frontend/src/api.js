@@ -97,6 +97,7 @@ async function request(path, { method = "GET", json, form } = {}) {
 export const api = {
   register: (name, email, password) => request("/auth/register", { method: "POST", json: { name, email, password } }),
   login: (email, password) => request("/auth/login", { method: "POST", json: { email, password } }),
+  adminLogin: (email, password) => request("/auth/admin/login", { method: "POST", json: { email, password } }),
 
   submitIntro: (id, answer, greeting) =>
     request(`/interview/${id}/intro`, { method: "POST", json: { answer, greeting } }),
@@ -111,13 +112,24 @@ export const api = {
   startInterview: (id) => request(`/interview/${id}/start`, { method: "POST" }),
   getQuestion: (id) => request(`/interview/${id}/question`),
   submitAnswer: (id, answer) => request(`/interview/${id}/answer`, { method: "POST", json: { answer } }),
+  finishInterview: (id) => request(`/interview/${id}/finish`, { method: "POST" }),
   getReport: (id) => request(`/interview/${id}/report`),
 
   // Proctoring (needs app/api/v1/proctoring.py on the backend)
+  setProctorBaseline(id, blob) {
+    const form = new FormData();
+    form.append("file", blob, "baseline.jpg");
+    return request(`/interview/${id}/proctor/baseline`, { method: "POST", form });
+  },
   sendFrame(id, blob) {
     const form = new FormData();
     form.append("file", blob, "frame.jpg");
     return request(`/interview/${id}/proctor/frame`, { method: "POST", form });
   },
   sendProctorEvent: (id, type) => request(`/interview/${id}/proctor/event`, { method: "POST", json: { type } }),
+
+  // Admin Dashboard endpoints
+  getAdminStats: () => request("/admin/stats"),
+  listCandidates: (q = "") => request(`/admin/candidates?q=${encodeURIComponent(q)}`),
+  getCandidateDossier: (userId) => request(`/admin/candidate/${userId}`),
 };

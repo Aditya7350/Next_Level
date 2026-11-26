@@ -212,7 +212,12 @@ export default function Landing() {
 
       <footer className="lp-wrap lp-footer">
         <span>{BRAND_NAME}</span>
-        <span>© {new Date().getFullYear()}</span>
+        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+          <a className="text-link" href="#/admin-login" style={{ fontSize: "0.85rem", opacity: 0.75 }}>
+            Recruiter Portal
+          </a>
+          <span>© {new Date().getFullYear()}</span>
+        </div>
       </footer>
     </div>
   );
