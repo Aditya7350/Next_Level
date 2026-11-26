@@ -19,9 +19,9 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: ADMIN_EMAIL
-        value: admin@interview.ai
+        sync: false
       - key: ADMIN_PASSWORD
-        value: AdminPass123
+        sync: false
       - key: ADMIN_NAME
         value: Recruiter Admin
       - key: PROCTOR_MAX_WARNINGS

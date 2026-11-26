@@ -46,6 +46,8 @@ This repository includes a pre-configured [`render.yaml`](file:///d:/AI_Intervie
 6. In the Blueprint setup form, enter your secret environment variables:
    - `OPENAI_API_KEY`: Your OpenAI API key (`sk-...`).
    - `MONGODB_URI`: Your MongoDB connection string.
+   - `ADMIN_EMAIL`: The administrator account email.
+   - `ADMIN_PASSWORD`: A strong, unique administrator password.
 7. Click **Apply**.
 8. Render will build both services and provide you with live URLs:
    - **Frontend:** `https://ai-interview-frontend.onrender.com`
@@ -82,8 +84,8 @@ If you prefer to create the services manually without Blueprints:
    | `ENVIRONMENT` | `production` |
    | `OPENAI_API_KEY` | `sk-...` |
    | `MONGODB_URI` | `mongodb+srv://...` |
-   | `ADMIN_EMAIL` | `admin@interview.ai` |
-   | `ADMIN_PASSWORD` | `AdminPass123` |
+   | `ADMIN_EMAIL` | Your administrator account email |
+   | `ADMIN_PASSWORD` | A strong, unique password stored as a secret |
    | `PROCTOR_MAX_WARNINGS` | `5` |
    | `PROCTOR_WARN_COOLDOWN` | `20.0` |
 5. Click **Deploy Web Service** and copy your backend URL (e.g., `https://ai-interview-backend.onrender.com`).
@@ -107,7 +109,7 @@ If you prefer to create the services manually without Blueprints:
 5. Under **Environment Variables**, add:
    | Key | Value |
    |---|---|
-   | `VITE_API_URL` | `https://ai-interview-backend.onrender.com/api/v1` (replace with your actual backend URL) |
+   | `VITE_API_URL` | `https://ai-interview-backend.onrender.com` (replace with your actual backend URL; the app adds `/api/v1`) |
 6. Click **Deploy Static Site**.
 
 ---
@@ -140,8 +142,8 @@ See [`.env.example`](file:///d:/AI_Interview_RAG-main/.env.example) for a comple
 |---|---|---|
 | `MONGODB_URI` | MongoDB Atlas connection string | Required |
 | `OPENAI_API_KEY` | OpenAI API key for evaluation | Required |
-| `ADMIN_EMAIL` | Administrator login email | `admin@interview.ai` |
-| `ADMIN_PASSWORD` | Administrator login password | `AdminPass123` |
+| `ADMIN_EMAIL` | Administrator login email | Set in Render |
+| `ADMIN_PASSWORD` | Administrator login password | Required; use a strong, unique secret |
 | `ADMIN_NAME` | Administrator display name | `Recruiter Admin` |
 | `PROCTOR_MAX_WARNINGS` | Maximum warnings before early conclusion | `5` |
 | `PROCTOR_WARN_COOLDOWN`| Minimum seconds between warnings | `20.0` |
@@ -159,10 +161,10 @@ Once Render finishes deploying:
    - Expected Response: `{"status": "ok"}`
 2. **Test Candidate Flow:**
    - Open your frontend URL: `https://your-frontend.onrender.com`
-   - Register or sign in with candidate credentials (`adityasarode1215@gmail.com` / `Nokia@124` or create a new account).
+   - Register a new candidate account and try the interview flow.
    - Upload a resume and start an interview.
    - Verify camera checks badge: `● Camera checks on`.
 3. **Test Recruiter Admin Portal:**
    - Open: `https://your-frontend.onrender.com/#/admin-login`
-   - Log in with `admin@interview.ai` / `AdminPass123`.
+   - Log in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` you configured in Render.
    - Verify candidate dossiers, scores, and integrity reports load correctly.

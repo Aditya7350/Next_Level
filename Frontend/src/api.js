@@ -1,5 +1,11 @@
-// API client for the FastAPI backend. Base URL: VITE_API_URL, default "/api/v1" (proxied by Vite in dev).
-const BASE = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
+// VITE_API_URL may be a Render service URL or a full API URL ending in /api/v1.
+const configuredBase = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const API_PREFIX = "/api/v1";
+const BASE = configuredBase
+  ? configuredBase.endsWith(API_PREFIX)
+    ? configuredBase
+    : `${configuredBase}${API_PREFIX}`
+  : API_PREFIX;
 
 const store = {
   get(k) {
