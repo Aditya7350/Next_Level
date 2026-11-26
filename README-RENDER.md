@@ -70,17 +70,18 @@ If you prefer to create the services manually without Blueprints:
    - **Runtime:** `Python 3`
    - **Build Command:**
      ```bash
-     pip install -r requirements.txt
+     uv sync --frozen --no-dev --extra proctoring && uv cache prune --ci
      ```
    - **Start Command:**
      ```bash
-     uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+     uv run --no-dev --extra proctoring uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
      ```
    - **Health Check Path:** `/health`
 4. Add **Environment Variables**:
    | Key | Value |
    |---|---|
    | `PYTHON_VERSION` | `3.12.8` |
+   | `UV_PROJECT_ENVIRONMENT` | `.pradnya_venv` |
    | `ENVIRONMENT` | `production` |
    | `OPENAI_API_KEY` | `sk-...` |
    | `MONGODB_URI` | `mongodb+srv://...` |

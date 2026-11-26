@@ -5,13 +5,15 @@ services:
   - type: web
     name: ai-interview-backend
     runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: uv sync --frozen --no-dev --extra proctoring && uv cache prune --ci
+    startCommand: uv run --no-dev --extra proctoring uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: UV_PROJECT_ENVIRONMENT
+        value: .pradnya_venv
       - key: ENVIRONMENT
         value: production
       - key: MONGODB_URI
