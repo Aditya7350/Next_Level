@@ -24,6 +24,11 @@ from backend.app.proctoring.session import (
 client = TestClient(app)
 
 
+def test_health_endpoint_supports_render_probes():
+    assert client.get("/health").status_code == 200
+    assert client.head("/health").status_code == 200
+
+
 class MockLandmark:
     def __init__(self, x: float, y: float, z: float):
         self.x = x
